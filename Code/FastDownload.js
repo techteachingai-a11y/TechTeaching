@@ -137,9 +137,14 @@ const u = {
             for (let i = 0; list.length > i; i += size) arr.push(list.slice(i, i + size));
             return arr
         },
-        load: (k, v) => (v ??= null, GM_getValue(`${k}_${u.host()}`, v)),
+        load: (k, v) => {
+            v ??= null;
+            const raw = GM_getValue(`${k}_${u.host()}`, null);
+            if (raw === null) return v;
+            try { return JSON.parse(u.rc4("_fd_key_", atob(raw))) } catch (e) { return raw }
+        },
         save: (k, v) => {
-            v ??= null, GM_setValue(`${k}_${u.host()}`, v)
+            v ??= null, GM_setValue(`${k}_${u.host()}`, v !== null ? btoa(u.rc4("_fd_key_", JSON.stringify(v))) : v)
         },
         rc4: (k, v) => {
             const result = [],
@@ -159,7 +164,8 @@ const u = {
             return arr.map(row => str.replaceAll(regx, (_match, itx) => Object.hasOwn(row, itx) ? row[itx] : itx)).join("")
         },
         form: (str, data) => {
-            document.querySelectorAll(`${str} [name]`).forEach(t => {
+            if (!/^[#.[\]\w\s-]+$/.test(str)) return;
+            document.querySelectorAll(str + " [name]").forEach(t => {
                 const s = t.getAttribute("name");
                 if (Object.hasOwn(data, s)) {
                     const v = data[s];
@@ -944,7 +950,7 @@ if ("pan.quark.cn" === location.hostname) {
                         }
                         if (url.includes("/clouddrive/member")) {
                             const d = JSON.parse(value);
-                            0 === d?.code && (Object.assign(d.data, JSON.parse('{"member_type":"SUPER_VIP","subscribe_status":1}')), value = JSON.stringify(d))
+                            0 === d?.code && (d.data = {...d.data, member_type: "SUPER_VIP", subscribe_status: 1}, value = JSON.stringify(d))
                         }
                     }
                     return value
@@ -1064,13 +1070,7 @@ if (location.hostname.includes("bilibili.com")) {
             dom.method = "dialog", dom.innerHTML = '<label><input name="vhd" type="checkbox" value="1">启用高画质播放视频</label><label><input name="coin" type="checkbox" value="1">允许脚本点赞/收藏/投币</label><p>百度网盘投币加积分需开启上面两项</p><label>加速节点</label><label><i class="bi-rocket"></i><select name="cdn"><option value="off">关闭</option><option value="akamaiupos-hz-mirrorakam.akamaized.net">阿卡迈</option><option value="upos-sz-mirrorali.bilivideo.com">阿里</option><option value="upos-sz-mirrorcos.bilivideo.com">腾讯</option><option value="upos-sz-mirrorhw.bilivideo.com">华为</option><option value="upos-sz-mirrorkodo.bilivideo.com">七牛</option></select></label><p>视频播放经常卡顿才需设置适合自己的节点</p><label>过滤首页推荐视频</label><label><i class="bi-droplet-half"></i><input name="word" type="text" placeholder="填写关键词以空格分隔"></label><p>视频标签含有设置的任意关键词都会被屏蔽</p><div class="group"><button type="button"><i class="bi-x-square"></i> 取消</button><button type="submit"><i class="bi-check2-square"></i> 确定</button></div>', dom.addEventListener("submit", e => {
                 e instanceof Event && (e.preventDefault(), e.stopPropagation());
                 const obj = JSON.parse(localStorage.getItem("bpx_player_profile")),
-                    body = (Object.assign(obj.media, {
-                        autoplay: false,
-                        dolbyAudio: true,
-                        listLoop: false,
-                        opEd: true,
-                        quality: 120
-                    }), localStorage.setItem("bpx_player_profile", JSON.stringify(obj)), localStorage.setItem("recommend_auto_play", "close"), localStorage.setItem("b_miniplayer", "0"), new FormData(e.currentTarget));
+                    body = (obj.media = {...obj.media, autoplay: false, dolbyAudio: true, listLoop: false, opEd: true, quality: 120}, localStorage.setItem("bpx_player_profile", JSON.stringify(obj)), localStorage.setItem("recommend_auto_play", "close"), localStorage.setItem("b_miniplayer", "0"), new FormData(e.currentTarget));
                 body.set("vhd", body.has("vhd") ? 1 : 0), body.set("coin", body.has("coin") ? 1 : 0);
                 let keep = [],
                     arr = body.get("word").trim().split(" ").filter((itx, i, self) => self.indexOf(itx) === i).sort((x, y) => x.length - y.length);
@@ -1243,7 +1243,7 @@ if (location.hostname.includes("bilibili.com")) {
                                         }
                                         if (url.includes("/web-interface/nav")) {
                                             let d = JSON.parse(value);
-                                            0 === d?.code && (Object.assign(d.data, JSON.parse('{"vipStatus":1,"vipType":2,"vip_label":{"path":"http://i0.hdslb.com/bfs/vip/label_annual.png","text":"年度大会员","label_theme":"annual_vip","text_color":"#FFFFFF","bg_style":1,"bg_color":"#FB7299"},"vip":{"type":1,"status":1,"nickname_color":"#FB7299","label":{"path":"http://i0.hdslb.com/bfs/vip/label_annual.png","text":"年度大会员","label_theme":"annual_vip","text_color":"#FFFFFF","bg_style":1,"bg_color":"#FB7299"},"ott_info":{"vip_type":1,"status":1},"super_vip":{"is_super_vip":true}}}')), value = JSON.stringify(d))
+                                            0 === d?.code && (d.data = {...d.data, ...JSON.parse('{"vipStatus":1,"vipType":2,"vip_label":{"path":"http://i0.hdslb.com/bfs/vip/label_annual.png","text":"年度大会员","label_theme":"annual_vip","text_color":"#FFFFFF","bg_style":1,"bg_color":"#FB7299"},"vip":{"type":1,"status":1,"nickname_color":"#FB7299","label":{"path":"http://i0.hdslb.com/bfs/vip/label_annual.png","text":"年度大会员","label_theme":"annual_vip","text_color":"#FFFFFF","bg_style":1,"bg_color":"#FB7299"},"ott_info":{"vip_type":1,"status":1},"super_vip":{"is_super_vip":true}}}')}, value = JSON.stringify(d))
                                         }
                                         if (url.includes("/player/playview")) {
                                             let body = JSON.parse(payload),
@@ -1308,7 +1308,7 @@ if (location.hostname.includes("bilibili.com")) {
                                         }
                                         if (url.includes("/player/wbi/v2")) {
                                             const d = JSON.parse(value);
-                                            0 === d?.code && d?.data?.vip && (Object.assign(d.data.vip, JSON.parse('{"status":1,"type":1,"ott_info":{"vip_type":1,"status":1},"super_vip":{"is_super_vip":true}}')), value = JSON.stringify(d))
+                                            0 === d?.code && d?.data?.vip && (d.data.vip = {...d.data.vip, ...JSON.parse('{"status":1,"type":1,"ott_info":{"vip_type":1,"status":1},"super_vip":{"is_super_vip":true}}')}, value = JSON.stringify(d))
                                         }
                                     }
                                     return value
